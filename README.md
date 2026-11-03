@@ -14,7 +14,42 @@ The goal of this investigation was to analyze Windows Security logs in Splunk an
 ## Investigation
 
 I collected Windows Security logs and forwarded them to Splunk. I then focused on Event ID 4624 (successful logon), looking at the logon types and the account information in each event.
+## SPL Queries
 
+### 1. Identify available indexes and event sources
+```spl
+index=*
+| stats count by index, sourcetype
+```
+
+### 2. Extract Windows Event IDs
+```spl
+index=main sourcetype="XmlWinEventLog:Security"
+| rex field=_raw "<EventID>(?<EventID>\d+)</EventID>"
+| stats count by EventID
+| sort - count
+```
+
+### 3. Analyze successful logon types
+```spl
+index=main sourcetype="XmlWinEventLog:Security"
+| rex field=_raw "<EventID>(?<EventID>\d+)</EventID>"
+| where EventID="4624"
+| rex field=_raw "<Data Name='LogonType'>(?<LogonType>\d+)</Data>"
+| stats count by LogonType
+| sort - count
+```
+
+### 4. Investigate usernames and logon types
+```spl
+index=main sourcetype="XmlWinEventLog:Security"
+| rex field=_raw "<EventID>(?<EventID>\d+)</EventID>"
+| where EventID="4624"
+| rex field=_raw "<Data Name='TargetUserName'>(?<Username>[^<]+)</Data>"
+| rex field=_raw "<Data Name='LogonType'>(?<LogonType>\d+)</Data>"
+| stats count by Username, LogonType
+| sort - count
+```
 ## Findings
 
 - I found several successful logon events (Event ID 4624).
